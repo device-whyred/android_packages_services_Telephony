@@ -36,12 +36,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.telephony.ims.ImsMmTelManager;
-import android.telephony.TelephonyManager;
 import android.telephony.SubscriptionManager;
 import android.util.Log;
 import android.view.View;
@@ -52,7 +49,6 @@ import com.android.internal.telephony.CarrierServiceStateTracker;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
-import com.android.internal.telephony.ServiceStateTracker;
 
 public class LimitedServiceActivity extends FragmentActivity {
 
@@ -62,50 +58,25 @@ public class LimitedServiceActivity extends FragmentActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(LOG_TAG, "Started LimitedServiceActivity");
-        int phoneId = getIntent().getExtras().getInt(PhoneConstants.PHONE_KEY);
         LimitedServiceAlertDialogFragment newFragment = LimitedServiceAlertDialogFragment.
-                newInstance(phoneId);
+                newInstance(getIntent());
         newFragment.show(getSupportFragmentManager(), null);
     }
 
     public static class LimitedServiceAlertDialogFragment extends DialogFragment {
         private static final String TAG = "LimitedServiceAlertDialog";
-        private static final int EVENT_IMS_CAPABILITIES_CHANGED = 1;
-        private static final String KEY_PHONE_ID = "key_phone_id";
-        private Phone mPhone;
-        private int mPhoneId;
-        private TelephonyManager mTelephonyManager;
-        private Handler mHandler;
+        public static final int NOTIFICATION_EMERGENCY_NETWORK = 1001;
+        private static int mPhoneId = SubscriptionManager.INVALID_PHONE_INDEX;
 
-        public static LimitedServiceAlertDialogFragment newInstance(int phoneId) {
+        public static LimitedServiceAlertDialogFragment newInstance(Intent intent) {
             LimitedServiceAlertDialogFragment frag = new LimitedServiceAlertDialogFragment();
-            Log.i(TAG, "LimitedServiceAlertDialog for phoneId:" + phoneId);
-            Bundle args = new Bundle();
-            args.putInt(KEY_PHONE_ID, phoneId);
-            frag.setArguments(args);
+            mPhoneId = intent.getExtras().getInt(PhoneConstants.PHONE_KEY);
+            Log.i(TAG, "LimitedServiceAlertDialog for phoneId:" + mPhoneId);
             return frag;
         }
 
         @Override
         public Dialog onCreateDialog(Bundle bundle) {
-            mPhoneId = getArguments().getInt(KEY_PHONE_ID);
-            mPhone = PhoneFactory.getPhone(mPhoneId);
-            mTelephonyManager = getContext().getSystemService(TelephonyManager.class).
-                    createForSubscriptionId(mPhone.getSubId());
-            mHandler = new Handler() {
-                @Override
-                public void handleMessage(Message msg) {
-                    switch (msg.what) {
-                        case EVENT_IMS_CAPABILITIES_CHANGED:
-                            if (!mTelephonyManager.isWifiCallingAvailable()) {
-                                cleanUp();
-                            }
-                            break;
-                    }
-                }
-            };
-            mPhone.getServiceStateTracker().registerForImsCapabilityChanged(mHandler,
-                    EVENT_IMS_CAPABILITIES_CHANGED, null);
             if (!SubscriptionManager.isValidPhoneId(mPhoneId)) return null;
             super.onCreateDialog(bundle);
             View dialogView = View.inflate(getActivity(),
@@ -144,7 +115,8 @@ public class LimitedServiceActivity extends FragmentActivity {
                 Log.i(TAG, "Disabling WFC setting");
                 imsMmTelMgr.setVoWiFiSettingEnabled(false);
             }
-            cleanUp();
+            dismiss();
+            getActivity().finish();
         }
 
         private void onPositiveButtonClicked(@NonNull SharedPreferences preferences,
@@ -163,11 +135,6 @@ public class LimitedServiceActivity extends FragmentActivity {
                 sNotificationManager.cancel(CarrierServiceStateTracker.EMERGENCY_NOTIFICATION_TAG,
                         PhoneFactory.getPhone(mPhoneId).getSubId());
             }
-            cleanUp();
-        }
-
-        private void cleanUp() {
-            mPhone.getServiceStateTracker().unregisterForImsCapabilityChanged(mHandler);
             dismiss();
             getActivity().finish();
         }

@@ -1112,8 +1112,7 @@ public class TelephonyConnectionService extends ConnectionService {
         if (state == ServiceState.STATE_OUT_OF_SERVICE) {
             int dataNetType = phone.getServiceState().getDataNetworkType();
             if (dataNetType == TelephonyManager.NETWORK_TYPE_LTE ||
-                    dataNetType == TelephonyManager.NETWORK_TYPE_LTE_CA ||
-                    dataNetType == TelephonyManager.NETWORK_TYPE_NR) {
+                    dataNetType == TelephonyManager.NETWORK_TYPE_LTE_CA) {
                 state = phone.getServiceState().getDataRegistrationState();
             }
         }

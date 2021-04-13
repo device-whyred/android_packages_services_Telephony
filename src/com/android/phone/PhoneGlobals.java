@@ -315,18 +315,18 @@ public class PhoneGlobals extends ContextWrapper {
                     refreshMwiIndicator(subId);
                     break;
                 case EVENT_DATA_CONNECTION_ATTACHED:
-                    int subIdQ = (Integer)((AsyncResult)msg.obj).userObj;
-                    Phone phone = getPhone(subIdQ);
+                    subId = (Integer)((AsyncResult)msg.obj).userObj;
+                    Phone phone = getPhone(subId);
                     if (phone != null) {
                         DataConnectionReasons reasons = new DataConnectionReasons();
                         boolean dataAllowed = phone.isDataAllowed(ApnSetting.TYPE_DEFAULT, reasons);
-                        if (!dataAllowed && dataIsNowRoaming(subIdQ)
-                                && subIdQ == mDefaultDataSubId) {
+                        if (!dataAllowed && dataIsNowRoaming(subId)
+                                && subId == mDefaultDataSubId) {
                             if (VDBG) Log.v(LOG_TAG, "EVENT_DATA_CONNECTION_ATTACHED");
                                 updateDataRoamingStatus();
                         }
                     } else {
-                        Log.w(LOG_TAG, "phone object is null subId: " + subIdQ);
+                        Log.w(LOG_TAG, "phone object is null subId: " + subId);
                     }
                     break;
             }
